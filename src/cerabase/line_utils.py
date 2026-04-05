@@ -46,7 +46,7 @@ def build_flex_message_contents(report_data, lang="en"):
     lang_suffix = lang
     
     # Get streamlit app URL from env or use placeholder
-    streamlit_url = os.getenv("STREAMLIT_APP_URL", "https://cerabase.streamlit.app").rstrip('/')
+    streamlit_url = os.getenv("STREAMLIT_APP_URL", "").rstrip('/')
     
     # Build switch URL with language parameter
     switch_url = f"{streamlit_url}/?lang={lang_labels['switch_lang']}"

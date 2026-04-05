@@ -1,9 +1,3 @@
 streamlit
-crewai
 supabase
-line-bot-sdk
 python-dotenv
-requests
-beautifulsoup4
-pydantic
-cerebras-cloud-sdk

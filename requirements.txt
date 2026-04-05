@@ -1,3 +1,7 @@
 streamlit
 supabase
 python-dotenv
+
+flask
+gunicorn
+line-bot-sdk

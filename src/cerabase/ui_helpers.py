@@ -260,23 +260,35 @@ def display_artwork_card(item, lang_suffix, lang_dict):
     description = item.get(f'description_{lang_suffix}', 'No content available.')
     summary = item.get(f'summary_{lang_suffix}', None)
 
+    # CSS hack to make columns equal height
+    st.markdown("""
+        <style>
+        [data-testid="stHorizontalBlock"] {
+            align-items: stretch !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
     # --- Top Row: Image (Left) and Details (Right) ---
-    col_img, col_details = st.columns([1, 0.8])
-    
-    with col_img:
-        # Image
-        if item.get("image_url"):
-            st.image(item["image_url"], width="stretch")
-    
-    with col_details:
-        # Title (Small heading)
-        st.markdown(f"### {title}")
+    with st.container(border=True):
+        col_img, col_details = st.columns([1, 0.8], gap="small")
         
-        # Artwork Details Card
-        with st.container(border=True):
-            st.markdown(f"📅 **{lang_dict['date']}**  \n{date}")
-            st.markdown(f"🌍 **{lang_dict['culture']}**  \n{culture}")
-            st.markdown(f"🎨 **{lang_dict['medium']}**  \n{medium}")
+        with col_img:
+            # Image - Using use_container_width for modern Streamlit compatibility
+            if item.get("image_url"):
+                st.image(item["image_url"], use_container_width=True)
+        
+        with col_details:
+            with st.container(border=True):
+                # Title
+                st.markdown(f"### {title}")
+                
+                # Artwork Details
+                st.markdown(f"📅 **{lang_dict['date']}**  \n{date}")
+                st.markdown(f"🌍 **{lang_dict['culture']}**  \n{culture}")
+                st.markdown(f"🎨 **{lang_dict['medium']}**  \n{medium}")
+            
+            st.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
             
             # Official link button
             if item.get("met_url"):

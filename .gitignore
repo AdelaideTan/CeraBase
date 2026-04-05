@@ -31,7 +31,7 @@ MANIFEST
 .env.local
 
 # Virtual Environments
-# cerabase_venv/
+cerabase_venv/
 venv/
 env/
 ENV/

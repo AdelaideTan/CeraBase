@@ -188,7 +188,7 @@ def build_flex_message_contents(report_data, lang="en"):
                     "action": {
                         "type": "uri",
                         "label": lang_labels["app_button"],
-                        "uri": streamlit_url
+                        "uri": f"{streamlit_url}/?lang={lang}&id={report_data.get('id') or report_data.get('object_id')}"
                     }
                 },
                 {

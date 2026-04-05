@@ -176,11 +176,16 @@ LANG_DICT = {
 
 def init_session_state():
     """Initialize Streamlit session state variables."""
-    # Check for language in query params first
+    # 1. 檢查網址是否有帶語言參數 ?lang=zh
     query_lang = st.query_params.get("lang")
     if query_lang in ["en", "zh"]:
         st.session_state.lang = query_lang
-        
+    
+    # 2. 檢查網址是否有帶作品 ID 參數 ?id=123
+    query_id = st.query_params.get("id")
+    if query_id:
+        st.session_state.selected_id = query_id
+    # 預設值設定
     if 'lang' not in st.session_state:
         st.session_state.lang = 'en'
     if 'selected_id' not in st.session_state:

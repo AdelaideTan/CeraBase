@@ -197,18 +197,11 @@ def toggle_language():
     st.session_state.lang = LANG_DICT[st.session_state.lang]["next_lang"]
 
 
+from cerabase.utils import get_supabase_client as get_base_client
+
 @st.cache_resource
 def get_supabase_client():
-    """Initialize and return Supabase client."""
-    load_dotenv()
-    url = os.getenv("SUPABASE_URL")
-    key = os.getenv("SUPABASE_KEY")
-    
-    if not url or not key:
-        st.error("❌ Supabase configuration missing. Check .env file.")
-        st.stop()
-    
-    return create_client(url, key)
+    return get_base_client()
 
 
 # ============================================================================

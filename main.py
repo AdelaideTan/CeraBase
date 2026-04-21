@@ -3,13 +3,14 @@ import json
 import re
 from dotenv import load_dotenv
 from crewai import Crew, LLM
-from supabase import create_client, Client
+from supabase import Client
 
 # Add src directory to module search path for the new package layout
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
 from cerabase.line_utils import send_line_daily_report
+from cerabase.utils import get_supabase_client, clean_data_string, validate_and_trim_descriptions
 
 # 匯入自定義模組
 from cerabase.fetch_art import get_random_pottery
@@ -38,64 +39,13 @@ def get_high_quality_pottery():
         print(f"⏭️  第 {attempts} 次抽取圖資不足，重新抽取中...")
     return None
 
-# --- 2. 資料清洗函式 ---
-def clean_data_string(text):
-    if not isinstance(text, str):
-        return str(text)
-    # 處理特殊字元與換行
-    text = text.replace('\u001f', '–') 
-    text = "".join(char for char in text if char.isprintable() or char == '–')
-    text = text.replace('"', "'")
-    text = re.sub(r'\s+', ' ', text).strip()
-    return text
-
-# --- 3. 字數驗證與截斷函式 ---
-def validate_and_trim_descriptions(data):
-    """
-    驗證並調整描述的字數至合規範圍。
-    - description_en: 150-250 個單詞
-    - description_zh: 300-500 個字
-    
-    如果超過上限，自動截斷；如果不足下限，保留原文並標記警告。
-    """
-    
-    # 驗證英文描述
-    if "description_en" in data:
-        desc_en = data["description_en"]
-        word_count = len(desc_en.split())
-        
-        if word_count > 250:
-            # 超過上限，截斷到 250 字
-            words = desc_en.split()
-            data["description_en"] = " ".join(words[:250]) + "..."
-            print(f"⚠️  英文描述超過上限 ({word_count} → 250 字)，已自動截斷")
-        elif word_count < 150:
-            print(f"⚠️  英文描述不足下限 ({word_count} < 150 字)，保留原文但請注意品質")
-    
-    # 驗證中文描述
-    if "description_zh" in data:
-        desc_zh = data["description_zh"]
-        char_count = len(desc_zh)
-        
-        if char_count > 500:
-            # 超過上限，截斷到 500 字
-            data["description_zh"] = desc_zh[:500] + "..."
-            print(f"⚠️  中文描述超過上限 ({char_count} → 500 字)，已自動截斷")
-        elif char_count < 300:
-            print(f"⚠️  中文描述不足下限 ({char_count} < 300 字)，保留原文但請注意品質")
-    
-    return data
-
 def main():
     # --- A. 初始化 Supabase 與 LLM ---
-    url = os.getenv("SUPABASE_URL")
-    key = os.getenv("SUPABASE_KEY")
-    
-    if not url or not key:
-        print("❌ 錯誤：找不到 SUPABASE_URL 或 SUPABASE_KEY，請檢查 .env 檔案。")
+    try:
+        supabase = get_supabase_client()
+    except Exception as e:
+        print(e)
         return
-
-    supabase: Client = create_client(url, key)
 
     cerebras_llm = LLM(
         model="cerebras/qwen-3-235b-a22b-instruct-2507", 
@@ -224,25 +174,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-# Linebot
-from linebot import LineBotApi
-from linebot.models import TextSendMessage, FlexSendMessage
-
-def send_line_flex_message(report_data):
-    # 初始化 Line API
-    line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
-    user_id = os.getenv("LINE_USER_ID")
-    
-    # 這裡我們用最簡單的 Text 版測試，成功後我們再換成超漂亮的 Flex 版
-    message_text = f"🏺 【今日陶瓷推薦】\n\n" \
-                   f"名稱：{report_data.get('title_zh')}\n" \
-                   f"年代：{report_data.get('date_zh')}\n" \
-                   f"產地：{report_data.get('culture_zh')}\n\n" \
-                   f"✨ AI 簡評：\n{report_data.get('description_zh')[:100]}..."
-
-    try:
-        line_bot_api.push_message(user_id, TextSendMessage(text=message_text))
-        print("📲 Line 訊息發送成功！")
-    except Exception as e:
-        print(f"❌ Line 發送失敗: {e}")

@@ -5,7 +5,6 @@ from linebot.exceptions import InvalidSignatureError
 from linebot.models import PostbackEvent, FlexSendMessage
 import os
 import sys
-from supabase import create_client, Client
 from dotenv import load_dotenv
 
 # 加載環境變數
@@ -17,12 +16,13 @@ app = Flask(__name__)
 line_bot_api = LineBotApi(os.getenv('LINE_CHANNEL_ACCESS_TOKEN'))
 handler = WebhookHandler(os.getenv('LINE_CHANNEL_SECRET')) # <--- 需要補這組 Secret
 
-# Supabase 設定
-supabase: Client = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
-
-# 引入你寫好的 Flex Message 生成工具
+# 引入你寫好的工具
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
+from cerabase.utils import get_supabase_client
 from cerabase.line_utils import build_flex_message_contents
+
+# 初始化服務
+supabase = get_supabase_client()
 
 @app.route("/", methods=['GET'])
 def health():

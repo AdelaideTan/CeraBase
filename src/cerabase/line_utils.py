@@ -9,40 +9,13 @@ from linebot import LineBotApi  # type: ignore
 from linebot.models import FlexSendMessage, TextSendMessage  # type: ignore
 
 
+from cerabase.constants import LINE_LABELS
+
 def build_flex_message_contents(report_data, lang="en"):
     """
     Build a Flex Message JSON structure for LINE.
-    
-    Args:
-        report_data: Dictionary containing artwork information
-        lang: Language code ("en" for English, "zh" for Chinese)
-    
-    Returns:
-        Dictionary with Flex Message structure
     """
-    # Language-specific labels
-    labels = {
-        "en": {
-            "date_label": "Date",
-            "culture_label": "Culture",
-            "medium_label": "Medium",
-            "met_button": "View on The Met",
-            "app_button": "View Full Details",
-            "switch_button": "閱覽中文版",
-            "switch_lang": "zh",
-        },
-        "zh": {
-            "date_label": "年代",
-            "culture_label": "產地",
-            "medium_label": "材質",
-            "met_button": "前往 The Met",
-            "app_button": "查看完整介紹",
-            "switch_button": "Switch to English",
-            "switch_lang": "en",
-        }
-    }
-    
-    lang_labels = labels.get(lang, labels["en"])
+    lang_labels = LINE_LABELS.get(lang, LINE_LABELS["en"])
     lang_suffix = lang
     
     # Get streamlit app URL from env or use placeholder

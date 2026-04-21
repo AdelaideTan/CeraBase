@@ -30,26 +30,50 @@ def health():
 
 @app.route("/callback", methods=['POST'])
 def callback():
-    signature = request.headers['X-Line-Signature']
+    signature = request.headers.get('X-Line-Signature', '')
     body = request.get_data(as_text=True)
+    
+    # 這裡印出部分 Body 內容協助 Debug
+    print(f"📥 收到 Webhook 請求: {body[:100]}...")
+    
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
+        print("❌ 無效的數位簽章，請檢查 LINE_CHANNEL_SECRET 是否正確！")
         abort(400)
+    except Exception as e:
+        print(f"🔥 Webhook Handler 發生錯誤: {e}")
+        abort(500)
+        
     return 'OK'
 
 @handler.add(PostbackEvent)
 def handle_postback(event):
+    """
+    處理 LINE Flex Message 的按鈕點擊事件 (切換語言)。
+    """
     try:
         data = event.postback.data
         print(f"DEBUG: 收到 Postback Data: {data}")
-        params = dict(item.split("=") for item in data.split("&"))
         
+        # 解析參數: action=switch_lang&lang=zh&object_id=123
+        try:
+            params = dict(item.split("=") for item in data.split("&"))
+        except ValueError:
+            print("❌ Postback Data 格式錯誤")
+            return
+
         if params.get("action") == "switch_lang":
             target_lang = params.get("lang")
             obj_id = params.get("object_id")
             
-            # 確保轉型，避免 Supabase 找不到資料
+            if not obj_id:
+                print("❌ 缺少 object_id")
+                return
+
+            print(f"🔎 正在搜尋作品 ID: {obj_id} (目標語言: {target_lang})")
+            
+            # 從 Supabase 查詢資料
             res = supabase.table("ceramic_items").select("*").eq("object_id", obj_id).execute()
             
             if not res.data:
@@ -57,10 +81,12 @@ def handle_postback(event):
                 return
 
             report_data = res.data[0]
-            print(f"✅ 找到作品: {report_data.get('title_zh')}")
+            print(f"✅ 找到作品: {report_data.get('title_zh') or report_data.get('title_en')}")
 
+            # 重新生成 Flex Message 內容
             flex_contents = build_flex_message_contents(report_data, lang=target_lang)
             
+            # 使用 reply_token 回傳訊息 (一個 Token 只能用一次)
             line_bot_api.reply_message(
                 event.reply_token,
                 FlexSendMessage(
@@ -68,40 +94,12 @@ def handle_postback(event):
                     contents=flex_contents
                 )
             )
-            print(f"🚀 已發送 {target_lang} 版卡片")
+            print(f"🚀 已成功切換至 {target_lang.upper()} 版")
 
     except Exception as e:
-        print(f"🔥 Webhook 處理發生崩潰: {e}")
-        
-    data = event.postback.data
-    # 解析按鈕中的數據：action=switch_lang&lang=zh&object_id=123
-    params = dict(item.split("=") for item in data.split("&"))
-    
-    if params.get("action") == "switch_lang":
-        target_lang = params.get("lang")
-        obj_id = params.get("object_id")
-        
-        # 轉型為 int (假設你的資料庫 object_id 是數字)
-        try:
-            obj_id = int(obj_id)
-        except:
-            pass # 如果原本就是字串就維持原樣
-
-        # 1. 向資料庫查詢該作品
-        res = supabase.table("ceramic_items").select("*").eq("object_id", obj_id).execute()
-        
-        if res.data:
-            report_data = res.data[0]
-            # 2. 生成新語言的卡片
-            flex_contents = build_flex_message_contents(report_data, lang=target_lang)
-            # 3. 回傳訊息
-            line_bot_api.reply_message(
-                event.reply_token,
-                FlexSendMessage(
-                    alt_text=f"🏺 CeraBase: {report_data.get('title_' + target_lang)}",
-                    contents=flex_contents
-                )
-            )
+        print(f"🔥 Webhook 處理發生錯誤: {e}")
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    # Render 環境通常會提供 PORT 環境變數
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)

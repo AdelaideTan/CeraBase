@@ -48,8 +48,24 @@ def build_flex_message_contents(report_data, lang="en"):
     # Get streamlit app URL from env or use placeholder
     streamlit_url = os.getenv("STREAMLIT_APP_URL", "").rstrip('/')
     
+    # 2. 【防呆檢查】如果環境變數抓不到，至少給它一個 https 開頭的假網址
+    # 否則 Line 看到 "/?lang=zh..." 會直接報 400 Invalid URI
+    if not streamlit_url.startswith("http"):
+        # 這裡印出 Log 讓你在 Render 後台能看到警告
+        print(f"⚠️ 警告: Render 環境變數 STREAMLIT_APP_URL 讀取失敗或格式錯誤: '{streamlit_url}'")
+        temp_base_url = "https://your-app.streamlit.app" 
+    else:
+        temp_base_url = streamlit_url
+
+    # 3. 統一作品 ID
+    obj_id = report_data.get('object_id') or report_data.get('id') or ""
+
+    # 4. 重新定義你的按鈕連結
+    # 這是給「查看完整介紹」用的
+    app_view_uri = f"{temp_base_url}/?lang={lang}&id={obj_id}"
+
     # Build switch URL with language parameter
-    switch_url = f"{streamlit_url}/?lang={lang_labels['switch_lang']}"
+    # switch_url = f"{streamlit_url}/?lang={lang_labels['switch_lang']}"
     
     flex_contents = {
         "type": "bubble",
@@ -188,7 +204,7 @@ def build_flex_message_contents(report_data, lang="en"):
                     "action": {
                         "type": "uri",
                         "label": lang_labels["app_button"],
-                        "uri": f"{streamlit_url}/?lang={lang}&id={report_data.get('id') or report_data.get('object_id')}"
+                        "uri": app_view_uri
                     }
                 },
                 {
